@@ -1,0 +1,9 @@
+apiVersion: batch.miracle.dev/v1
+kind: ScaledJob
+metadata:
+  labels:
+    app.kubernetes.io/name: scaledjob-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: scaledjob-sample
+spec:
+  # TODO(user): Add fields here
