@@ -28,6 +28,9 @@ go.work.sum
 # env file
 .env
 
+# local agent instructions
+AGENTS.md
+
 # Editor/IDE
 .idea/
 .vscode/

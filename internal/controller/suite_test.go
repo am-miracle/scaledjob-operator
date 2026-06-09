@@ -66,15 +66,17 @@ var _ = BeforeSuite(func() {
 	// +kubebuilder:scaffold:scheme
 
 	By("bootstrapping test environment")
+	binaryAssetsDirectory := getEnvTestBinaryDir()
+	if binaryAssetsDirectory == "" {
+		Skip("envtest binaries are not available; run `make setup-envtest` or set `KUBEBUILDER_ASSETS`")
+	}
+
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
 
-	// Retrieve the first found binary directory to allow running tests from IDEs
-	if getFirstFoundEnvTestBinaryDir() != "" {
-		testEnv.BinaryAssetsDirectory = getFirstFoundEnvTestBinaryDir()
-	}
+	testEnv.BinaryAssetsDirectory = binaryAssetsDirectory
 
 	// cfg is defined in this file globally.
 	cfg, err = testEnv.Start()
@@ -87,6 +89,10 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	if testEnv == nil {
+		return
+	}
+
 	By("tearing down the test environment")
 	cancel()
 	Eventually(func() error {
@@ -94,19 +100,16 @@ var _ = AfterSuite(func() {
 	}, time.Minute, time.Second).Should(Succeed())
 })
 
-// getFirstFoundEnvTestBinaryDir locates the first binary in the specified path.
-// ENVTEST-based tests depend on specific binaries, usually located in paths set by
-// controller-runtime. When running tests directly (e.g., via an IDE) without using
-// Makefile targets, the 'BinaryAssetsDirectory' must be explicitly configured.
-//
-// This function streamlines the process by finding the required binaries, similar to
-// setting the 'KUBEBUILDER_ASSETS' environment variable. To ensure the binaries are
-// properly set up, run 'make setup-envtest' beforehand.
-func getFirstFoundEnvTestBinaryDir() string {
+// getEnvTestBinaryDir resolves the envtest binary directory from the environment
+// or from the local setup-envtest cache used by the Makefile.
+func getEnvTestBinaryDir() string {
+	if binaryAssetsDirectory := os.Getenv("KUBEBUILDER_ASSETS"); binaryAssetsDirectory != "" {
+		return binaryAssetsDirectory
+	}
+
 	basePath := filepath.Join("..", "..", "bin", "k8s")
 	entries, err := os.ReadDir(basePath)
 	if err != nil {
-		logf.Log.Error(err, "Failed to read directory", "path", basePath)
 		return ""
 	}
 	for _, entry := range entries {

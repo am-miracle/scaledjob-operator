@@ -6,4 +6,17 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: scaledjob-sample
 spec:
-  # TODO(user): Add fields here
+  queueName: emails
+  redisAddress: redis.default.svc.cluster.local:6379
+  threshold: 10
+  minReplicas: 0
+  maxReplicas: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: worker
+              image: busybox:latest
+              command: ["sh", "-c", "echo processing job && sleep 10"]
