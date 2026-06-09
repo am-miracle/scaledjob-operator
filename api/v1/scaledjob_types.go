@@ -25,24 +25,39 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // ScaledJobSpec defines the desired state of ScaledJob
+
+// +kubebuilder:printcolumn:name="Queue",type=string,JSONPath=".spec.queueName"
+// +kubebuilder:printcolumn:name="Depth",type=integer,JSONPath=".status.queueDepth"
+// +kubebuilder:printcolumn:name="Active",type=integer,JSONPath=".status.activeJobs"
+// +kubebuilder:printcolumn:name="Desired",type=integer,JSONPath=".status.desiredJobs"
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=".status.conditions[?(@.type=='Ready')].status"
 type ScaledJobSpec struct {
 	// QueueName is the Redis list key to monitor.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	QueueName string `json:"queueName"`
 
 	// RedisAddress is the host:port of the Redis instance.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	RedisAddress string `json:"redisAddress"`
 
 	// Threshold is the queue depth per Job.
 	// At depth 50 with threshold 10, the operator targets 5 Jobs.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
 	Threshold int32 `json:"threshold"`
 
 	// MinReplicas is the minimum number of Jobs to maintain.
 	// Defaults to 0 — no Jobs run when the queue is empty.
+	// +kubebuilder:default=0
 	// +optional
 	MinReplicas *int32 `json:"minReplicas,omitempty"`
 
 	// MaxReplicas is the hard ceiling on Jobs created.
 	// The operator will never exceed this regardless of queue depth.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
 	MaxReplicas int32 `json:"maxReplicas"`
 
 	// JobTemplate is the Job spec to use when creating workers.

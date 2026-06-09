@@ -9048,8 +9048,10 @@ spec:
                   MaxReplicas is the hard ceiling on Jobs created.
                   The operator will never exceed this regardless of queue depth.
                 format: int32
+                minimum: 1
                 type: integer
               minReplicas:
+                default: 0
                 description: |-
                   MinReplicas is the minimum number of Jobs to maintain.
                   Defaults to 0 — no Jobs run when the queue is empty.
@@ -9057,15 +9059,18 @@ spec:
                 type: integer
               queueName:
                 description: QueueName is the Redis list key to monitor.
+                minLength: 1
                 type: string
               redisAddress:
                 description: RedisAddress is the host:port of the Redis instance.
+                minLength: 1
                 type: string
               threshold:
                 description: |-
                   Threshold is the queue depth per Job.
                   At depth 50 with threshold 10, the operator targets 5 Jobs.
                 format: int32
+                minimum: 1
                 type: integer
             required:
             - jobTemplate

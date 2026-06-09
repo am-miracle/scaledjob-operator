@@ -21,6 +21,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	kbatchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -51,7 +53,27 @@ var _ = Describe("ScaledJob Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: batchv1.ScaledJobSpec{
+						QueueName:    "test-queue",
+						RedisAddress: "redis:6379",
+						Threshold:    10,
+						MaxReplicas:  5,
+						JobTemplate: kbatchv1.JobTemplateSpec{
+							Spec: kbatchv1.JobSpec{
+								Template: corev1.PodTemplateSpec{
+									Spec: corev1.PodSpec{
+										Containers: []corev1.Container{
+											{
+												Name:  "worker",
+												Image: "busybox:latest",
+											},
+										},
+										RestartPolicy: corev1.RestartPolicyNever,
+									},
+								},
+							},
+						},
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
