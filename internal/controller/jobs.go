@@ -54,3 +54,16 @@ func countActiveJobs(jobs k8sbatchv1.JobList) int32 {
 	}
 	return count
 }
+
+func controllerOwnedJobs(jobs k8sbatchv1.JobList, owner *batchv1.ScaledJob) k8sbatchv1.JobList {
+	owned := k8sbatchv1.JobList{
+		Items: make([]k8sbatchv1.Job, 0, len(jobs.Items)),
+	}
+	for _, job := range jobs.Items {
+		controllerRef := metav1.GetControllerOf(&job)
+		if controllerRef != nil && controllerRef.UID == owner.UID {
+			owned.Items = append(owned.Items, job)
+		}
+	}
+	return owned
+}

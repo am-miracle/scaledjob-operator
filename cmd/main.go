@@ -35,8 +35,11 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	batchv1 "github.com/am-miracle/scaledjob-operator/api/v1"
 	"github.com/am-miracle/scaledjob-operator/internal/controller"
+	"github.com/am-miracle/scaledjob-operator/internal/queue"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -178,9 +181,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	redisFactory := &queue.RedisFactory{}
+	if err := mgr.Add(redisFactory); err != nil {
+		setupLog.Error(err, "Failed to register Redis client cleanup")
+		os.Exit(1)
+	}
+
 	if err := (&controller.ScaledJobReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		QueueFactory: redisFactory,
+		Clock:        metav1.Now,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "scaledjob")
 		os.Exit(1)

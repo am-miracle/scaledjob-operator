@@ -7,6 +7,7 @@ import (
 	k8sbatchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	batchv1 "github.com/am-miracle/scaledjob-operator/api/v1"
 )
@@ -149,3 +150,53 @@ func TestCountActiveJobs(t *testing.T) {
 		})
 	}
 }
+
+func TestControllerOwnedJobs(t *testing.T) {
+	owner := makeSJ("current", "default")
+	owner.UID = types.UID("current-uid")
+
+	owned := k8sbatchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "owned",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         batchv1.GroupVersion.String(),
+					Kind:               "ScaledJob",
+					Name:               owner.Name,
+					UID:                owner.UID,
+					Controller:         ptrBool(true),
+					BlockOwnerDeletion: ptrBool(true),
+				},
+			},
+		},
+	}
+	staleSameName := k8sbatchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "stale",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         batchv1.GroupVersion.String(),
+					Kind:               "ScaledJob",
+					Name:               owner.Name,
+					UID:                types.UID("old-uid"),
+					Controller:         ptrBool(true),
+					BlockOwnerDeletion: ptrBool(true),
+				},
+			},
+		},
+	}
+	unowned := k8sbatchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "unowned"}}
+
+	got := controllerOwnedJobs(k8sbatchv1.JobList{
+		Items: []k8sbatchv1.Job{owned, staleSameName, unowned},
+	}, owner)
+
+	if len(got.Items) != 1 {
+		t.Fatalf("owned jobs = %d, want 1", len(got.Items))
+	}
+	if got.Items[0].Name != "owned" {
+		t.Errorf("owned job = %q, want %q", got.Items[0].Name, "owned")
+	}
+}
+
+func ptrBool(v bool) *bool { return &v }
